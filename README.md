@@ -68,12 +68,36 @@ pandas
 Pillow
 ```
 
-### データ配置
+### データ配置（推奨：自動セットアップ）
+
+データ・モデルは `~/My Drive/dev-assets/events/kaggle/vqa/` で管理されている（詳細は [`manifest.yaml`](../../../../../My%20Drive/dev-assets/events/kaggle/vqa/manifest.yaml)）。
+新しいマシンで `git clone` 後、以下を実行するだけでセットアップ完了：
+
+```bash
+bash scripts/setup_data.sh
+```
+
+このスクリプトが行うこと：
+
+1. dev-assets の場所を自動検出（Mac の Google Drive 同期 / Colab の `/content/drive` / フォールバック）
+2. `data.zip`, `model.pt`, `submission.{zip,npy}` のシンボリックリンクを repo 直下に作成
+3. `data.zip` を `data/` に展開（未展開時のみ）
+4. `manifest.yaml` の sha256 と突合してデータの完全性を検証
+
+オプション：
+
+```bash
+bash scripts/setup_data.sh --verify-all   # data.zip も含めてハッシュ検証
+bash scripts/setup_data.sh --no-verify    # 検証スキップ（高速）
+bash scripts/setup_data.sh --no-extract   # data.zip 展開をスキップ
+```
+
+### データ配置（手動：dev-assets にアクセスできない環境向け）
 
 1. [VizWiz 2023 edition](https://www.kaggle.com/datasets/nqa112/vizwiz-2023-edition) から `data.zip` をダウンロード
 2. プロジェクトルートに配置して展開:
    ```bash
-   unzip data.zip
+   unzip data.zip -d data/
    ```
 3. `data/train/`, `data/valid/`, `data/train.json`, `data/valid.json` が存在することを確認
 

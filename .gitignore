@@ -1,5 +1,10 @@
+# Large binaries (managed under ~/My Drive/dev-assets/events/kaggle/vqa/)
 data
 data.zip
 submission.*
 model.pt
+
+# setup_data.sh が作る展開完了マーカー（環境ごとに作られるためGit管理しない）
+data/.extracted
+
 .DS_Store
