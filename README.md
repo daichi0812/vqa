@@ -42,49 +42,66 @@
 
 ```
 vqa/
-├── baseline.ipynb                              # 改善済みノートブック（メイン）
-├── DL_Basic_2025_Competition_VQA_baseline.ipynb # 配布ベースライン
+├── pyproject.toml           # uv プロジェクト定義（依存関係）
+├── .python-version          # Python バージョン (3.12)
+├── uv.lock                  # 依存関係のロックファイル
+├── baseline.ipynb           # 改善済みノートブック（メイン）
+├── starter.ipynb            # 配布ベースライン（参考用）
 ├── docs/
-│   └── architecture.png                        # モデルアーキテクチャ図
-├── data/                                       # データセット（Git 管理外）
-│   ├── train/                                  # 訓練画像
-│   ├── valid/                                  # テスト画像
-│   ├── train.json                              # 訓練アノテーション
-│   └── valid.json                              # テストアノテーション
-├── model.pt                                    # 学習済み重み
-├── submission.npy                              # 予測結果
-└── submission.zip                              # 提出用 zip
+│   └── architecture.png     # モデルアーキテクチャ図
+├── scripts/
+│   └── setup_data.sh        # データ・モデルのセットアップ
+├── data/                    # 訓練/検証データ（Git 管理外）
+│   ├── train/               # 訓練画像
+│   ├── valid/               # 検証画像
+│   ├── train.json           # 訓練アノテーション
+│   └── valid.json           # 検証アノテーション
+├── data.zip                 # データ zip（symlink, Git 管理外）
+├── models/                  # 学習済み重み（Git 管理外）
+│   └── model.pt
+└── outputs/                 # 予測結果（Git 管理外）
+    ├── submission.npy
+    └── submission.zip
 ```
 
 ## セットアップ
 
-### 依存ライブラリ
+### 1. 仮想環境（uv）
 
-```
-torch
-torchvision
-numpy
-pandas
-Pillow
+[uv](https://docs.astral.sh/uv/) を使う。未インストールなら:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### データ配置（推奨：自動セットアップ）
+リポジトリ直下で:
+
+```bash
+uv sync           # .venv/ を作成し依存をインストール
+```
+
+`.python-version` と `pyproject.toml` から自動で Python 3.12 と依存関係（torch, torchvision, numpy, pandas, Pillow, scikit-learn, jupyterlab 等）を解決する。
+
+### 2. データ・モデルの配置（推奨：自動セットアップ）
 
 データ・モデルは `~/My Drive/dev-assets/events/kaggle/vqa/` で管理されている（詳細は [`manifest.yaml`](../../../../../My%20Drive/dev-assets/events/kaggle/vqa/manifest.yaml)）。
-新しいマシンで `git clone` 後、以下を実行するだけでセットアップ完了：
+新しいマシンで `git clone` 後、以下を実行するだけでセットアップ完了:
 
 ```bash
 bash scripts/setup_data.sh
 ```
 
-このスクリプトが行うこと：
+このスクリプトが行うこと:
 
 1. dev-assets の場所を自動検出（Mac の Google Drive 同期 / Colab の `/content/drive` / フォールバック）
-2. `data.zip`, `model.pt`, `submission.{zip,npy}` のシンボリックリンクを repo 直下に作成
-3. `data.zip` を `data/` に展開（未展開時のみ）
+2. 以下のシンボリックリンクを作成:
+   - `data.zip` → dev-assets/raw/data.zip
+   - `models/model.pt` → dev-assets/models/model.pt
+   - `outputs/submission.{zip,npy}` → dev-assets/outputs/submission-2025-01-05/
+3. `data.zip` を repo 直下に展開（zip 内 `data/` を repo 直下に展開し `data/train/...` の構造になる）
 4. `manifest.yaml` の sha256 と突合してデータの完全性を検証
 
-オプション：
+オプション:
 
 ```bash
 bash scripts/setup_data.sh --verify-all   # data.zip も含めてハッシュ検証
@@ -97,11 +114,21 @@ bash scripts/setup_data.sh --no-extract   # data.zip 展開をスキップ
 1. [VizWiz 2023 edition](https://www.kaggle.com/datasets/nqa112/vizwiz-2023-edition) から `data.zip` をダウンロード
 2. プロジェクトルートに配置して展開:
    ```bash
-   unzip data.zip -d data/
+   unzip data.zip   # repo 直下で。data/train/, data/valid/, data/*.json が作られる
    ```
-3. `data/train/`, `data/valid/`, `data/train.json`, `data/valid.json` が存在することを確認
+3. `data/train/`, `data/valid/`, `data/train.json`, `data/valid.json` を確認
 
 ## 使い方
+
+### ローカル
+
+```bash
+uv sync
+bash scripts/setup_data.sh
+uv run jupyter lab     # ブラウザで baseline.ipynb を開く
+```
+
+GPU 推奨。
 
 ### Google Colab
 
@@ -110,17 +137,11 @@ bash scripts/setup_data.sh --no-extract   # data.zip 展開をスキップ
 3. ノートブック冒頭のセルで Drive マウント → データ展開
 4. 上から順にセルを実行
 
-### ローカル
-
-1. 依存ライブラリをインストール
-2. データを `data/` ディレクトリに配置
-3. `baseline.ipynb` を Jupyter で実行（GPU 推奨）
-
 ### 出力
 
-- `model.pt` — 学習済みモデルの重み
-- `submission.npy` — テストデータに対する予測結果
-- `submission.zip` — 提出用 zip（submission.npy + model.pt + ノートブック）
+- `models/model.pt` — 学習済みモデルの重み
+- `outputs/submission.npy` — テストデータに対する予測結果
+- `outputs/submission.zip` — 提出用 zip（submission.npy + model.pt + ノートブック）
 
 ## 評価指標
 

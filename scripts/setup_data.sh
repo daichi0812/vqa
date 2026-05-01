@@ -32,12 +32,12 @@ ASSET_CANDIDATES=(
   "$HOME/My Drive/dev-assets"                                                        # Drive desktop fallback
 )
 
-# repo_filename | dev-assets相対パス
+# repo相対パス | dev-assets相対パス
 LINK_SPECS=(
   "data.zip|raw/data.zip"
-  "model.pt|models/model.pt"
-  "submission.zip|outputs/submission-2025-01-05/submission.zip"
-  "submission.npy|outputs/submission-2025-01-05/submission.npy"
+  "models/model.pt|models/model.pt"
+  "outputs/submission.zip|outputs/submission-2025-01-05/submission.zip"
+  "outputs/submission.npy|outputs/submission-2025-01-05/submission.npy"
 )
 
 # ---------------------------------------------------------------------------
@@ -96,15 +96,16 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "==> Creating symlinks in $REPO_DIR"
 for spec in "${LINK_SPECS[@]}"; do
-  IFS='|' read -r repo_name asset_rel <<< "$spec"
+  IFS='|' read -r repo_rel asset_rel <<< "$spec"
   src="$ASSETS/$asset_rel"
-  dst="$REPO_DIR/$repo_name"
+  dst="$REPO_DIR/$repo_rel"
   if [ ! -e "$src" ]; then
-    echo "  [skip] $repo_name (source missing: $src)"
+    echo "  [skip] $repo_rel (source missing: $src)"
     continue
   fi
+  mkdir -p "$(dirname "$dst")"
   ln -sfn "$src" "$dst"
-  echo "  [ok]   $repo_name -> $src"
+  echo "  [ok]   $repo_rel -> $src"
 done
 echo ""
 
@@ -125,9 +126,8 @@ else
     echo "ERROR: unzip not found. Install it (e.g. apt install unzip / brew install unzip)" >&2
     exit 1
   fi
-  echo "==> Extracting data.zip to data/"
-  mkdir -p "$REPO_DIR/data"
-  unzip -oq "$DATA_ZIP" -d "$REPO_DIR/data"
+  echo "==> Extracting data.zip to $REPO_DIR (zip contains data/ at top level)"
+  unzip -oq "$DATA_ZIP" -d "$REPO_DIR"
   touch "$EXTRACT_MARKER"
   echo "    Extracted."
 fi
@@ -161,7 +161,7 @@ except ImportError:
 with open(manifest_path) as f:
     m = yaml.safe_load(f)
 
-# (filename in repo, expected sha256, is_large)
+# (path in repo, expected sha256, is_large)
 checks = []
 data = m.get("data", {}) or {}
 if "raw_zip" in data:
@@ -169,14 +169,14 @@ if "raw_zip" in data:
 
 models = m.get("models", {}) or {}
 if "baseline" in models:
-    checks.append(("model.pt", models["baseline"]["sha256"], False))
+    checks.append(("models/model.pt", models["baseline"]["sha256"], False))
 
 outputs = m.get("outputs", {}) or {}
 for sub in outputs.values():
     for f in sub.get("files", []) or []:
         name = os.path.basename(f["path"])
         if name.startswith("submission."):
-            checks.append((name, f["sha256"], False))
+            checks.append((f"outputs/{name}", f["sha256"], False))
 
 ok = fail = skipped = 0
 for fname, expected, is_large in checks:
